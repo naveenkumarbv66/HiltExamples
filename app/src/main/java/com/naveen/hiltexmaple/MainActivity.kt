@@ -1,20 +1,23 @@
 package com.naveen.hiltexmaple
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.naveen.hiltexmaple.dataClass.Person
 import com.naveen.hiltexmaple.runTime.AssistedViewModel
@@ -64,10 +67,28 @@ class MainActivity : ComponentActivity() {
 
             HiltExmapleTheme {
                 Scaffold( modifier = Modifier.fillMaxSize() ) { innerPadding ->
-                    Greeting(
-                        name = data.name.plus(" ").plus(address),
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Greeting(
+                            name = data.name.plus(" ").plus(address),
+                            modifier = Modifier.padding(bottom = 32.dp)
+                        )
+                        
+                        Button(
+                            onClick = {
+                                val intent = Intent(this@MainActivity, com.naveen.hiltexmaple.api.ui.activity.ApiDemoActivity::class.java)
+                                startActivity(intent)
+                            }
+                        ) {
+                            Text("Open API Demo")
+                        }
+                    }
                 }
             }
         }

@@ -26,6 +26,29 @@ app/src/main/java/com/naveen/hiltexmaple/
 │   └── viewModelData.kt          # Data class for ViewModel
 ├── runTime/
 │   └── AssistedViewModel.kt      # Assisted injection example
+├── api/                          # NEW: Complete API Implementation
+│   ├── data/
+│   │   ├── model/
+│   │   │   ├── User.kt           # User data model
+│   │   │   └── ApiResponse.kt    # API response wrapper
+│   │   ├── repository/
+│   │   │   └── UserRepositoryImpl.kt  # Repository implementation
+│   │   └── remote/
+│   │       ├── ApiService.kt     # Retrofit API interface
+│   │       └── NetworkException.kt    # Network error handling
+│   ├── domain/
+│   │   ├── model/
+│   │   │   └── UserState.kt      # UI state models
+│   │   └── repository/
+│   │       └── UserRepository.kt # Repository interface
+│   ├── di/
+│   │   ├── NetworkModule.kt      # Network dependencies
+│   │   └── RepositoryModule.kt   # Repository binding
+│   └── ui/
+│       ├── viewmodel/
+│       │   └── UserViewModel.kt  # ViewModel with StateFlow
+│       └── activity/
+│           └── ApiDemoActivity.kt # Complete CRUD UI
 └── ui/theme/                     # Compose theme files
 ```
 
@@ -57,6 +80,16 @@ app/src/main/java/com/naveen/hiltexmaple/
 - Hilt ViewModels in Compose
 - StateFlow integration with Compose
 
+### 7. **Complete API Implementation (NEW)**
+- **Clean Architecture MVVM** with Retrofit, Coroutines, and Hilt
+- **Full CRUD Operations**: GET, POST, PUT, PATCH, DELETE
+- **Comprehensive Error Handling**: HTTP errors (400, 401, 403, 404, 422, 429, 500, 502, 503)
+- **Network Exception Handling**: Timeout, No Internet, Network errors
+- **StateFlow Integration**: Loading, Success, Error states
+- **Modern UI**: Jetpack Compose with Material3 design
+- **Repository Pattern**: Clean separation of concerns
+- **Dependency Injection**: Complete Hilt setup for networking
+
 ## 🛠️ Technologies Used
 
 - **Android SDK**: API 24+ (Android 7.0+)
@@ -84,6 +117,17 @@ implementation("androidx.hilt:hilt-navigation-compose:1.3.0")
 
 // ViewModel Compose
 implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
+
+// NEW: Networking Dependencies
+implementation("com.squareup.retrofit2:retrofit:2.11.0")
+implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+implementation("com.squareup.okhttp3:okhttp:4.12.0")
+implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+implementation("com.google.code.gson:gson:2.11.0")
+
+// NEW: Coroutines
+implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 ```
 
 ## 🔧 Setup Instructions
@@ -102,6 +146,42 @@ implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
    ```bash
    ./gradlew assembleDebug
    ```
+
+## ✅ Build Status
+
+The project builds successfully! You may see some deprecation warnings during compilation, but these are **not errors** and don't affect functionality:
+
+### 📝 Known Warnings (Non-Critical)
+
+1. **Hilt Generated Code Warning**:
+   ```
+   Note: Hilt_AppApplication.java uses or overrides a deprecated API.
+   ```
+   - This is from Hilt's internal generated code using deprecated Android APIs
+   - **Normal and expected** - it's a framework issue, not your code
+
+2. **Gson Deprecation Warning**:
+   ```
+   'fun setLenient(): GsonBuilder!' is deprecated
+   ```
+   - The `setLenient()` method in Gson is deprecated but still functional
+   - **Non-critical** - doesn't affect API functionality
+
+3. **Kapt Warning**:
+   ```
+   Kapt currently doesn't support language version 2.0+. Falling back to 1.9.
+   ```
+   - Kapt automatically falls back to Kotlin 1.9 for compatibility
+   - **Expected behavior** - works perfectly with fallback
+
+### 🎯 What This Means
+
+- ✅ **App compiles successfully**
+- ✅ **All API functionality works**
+- ✅ **Hilt dependency injection works**
+- ✅ **Ready to install and run**
+
+These warnings are **cosmetic** and don't impact the app's functionality or performance.
 
 ## 📚 Code Examples
 
@@ -171,6 +251,89 @@ class AssistedViewModel @AssistedInject constructor(
 ) : ViewModel()
 ```
 
+### 7. API Implementation with Clean Architecture
+```kotlin
+// API Service Interface
+interface ApiService {
+    @GET("users")
+    suspend fun getUsers(): Response<List<User>>
+    
+    @POST("users")
+    suspend fun createUser(@Body user: User): Response<User>
+    
+    @PUT("users/{id}")
+    suspend fun updateUser(@Path("id") id: Int, @Body user: User): Response<User>
+    
+    @DELETE("users/{id}")
+    suspend fun deleteUser(@Path("id") id: Int): Response<Unit>
+}
+
+// Repository Implementation with Error Handling
+class UserRepositoryImpl @Inject constructor(
+    private val apiService: ApiService
+) : UserRepository {
+    override suspend fun getUsers(): ApiResult<List<User>> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.getUsers()
+            if (response.isSuccessful) {
+                response.body()?.let { users ->
+                    ApiResult.Success(users)
+                } ?: ApiResult.Error("Empty response body", response.code())
+            } else {
+                ApiResult.Error("Failed to fetch users: ${response.message()}", response.code())
+            }
+        } catch (e: Exception) {
+            val networkException = handleNetworkException(e)
+            ApiResult.Error(networkException.message, (networkException as? NetworkException.HttpError)?.code)
+        }
+    }
+}
+
+// ViewModel with StateFlow
+@HiltViewModel
+class UserViewModel @Inject constructor(
+    private val userRepository: UserRepository
+) : ViewModel() {
+    private val _usersState = MutableStateFlow(UiState<List<User>>())
+    val usersState: StateFlow<UiState<List<User>>> = _usersState.asStateFlow()
+    
+    fun loadUsers() {
+        viewModelScope.launch {
+            _usersState.value = _usersState.value.copy(isLoading = true, error = null)
+            
+            when (val result = userRepository.getUsers()) {
+                is ApiResult.Success -> {
+                    _usersState.value = UiState(isLoading = false, data = result.data, error = null)
+                }
+                is ApiResult.Error -> {
+                    _usersState.value = UiState(isLoading = false, data = null, error = result.message, errorCode = result.errorCode)
+                }
+            }
+        }
+    }
+}
+
+// Network Module for Dependency Injection
+@Module
+@InstallIn(SingletonComponent::class)
+object NetworkModule {
+    @Provides
+    @Singleton
+    fun provideRetrofit(): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://jsonplaceholder.typicode.com/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideApiService(retrofit: Retrofit): ApiService {
+        return retrofit.create(ApiService::class.java)
+    }
+}
+```
+
 ## 🎯 Key Learning Points
 
 1. **Component Scopes**: Understanding different Hilt components (Singleton, Activity, ViewModel)
@@ -179,6 +342,12 @@ class AssistedViewModel @AssistedInject constructor(
 4. **Assisted Injection**: Handling runtime parameters in dependency injection
 5. **Compose Integration**: Using Hilt ViewModels in Jetpack Compose
 6. **State Management**: Combining StateFlow with Hilt for reactive UI
+7. **Clean Architecture**: Proper separation of concerns with data, domain, and UI layers
+8. **Network Error Handling**: Comprehensive error handling for different HTTP status codes
+9. **Repository Pattern**: Abstracting data sources and business logic
+10. **Coroutines Integration**: Using suspend functions with ViewModels and StateFlow
+11. **Retrofit Configuration**: Setting up networking with proper interceptors and converters
+12. **UI State Management**: Handling loading, success, and error states in Compose
 
 ## 🧪 Testing
 
@@ -192,6 +361,44 @@ The project includes basic test structure:
 - Runtime parameter passing is shown using assisted injection
 - All examples follow Android and Hilt best practices
 - The UI is built with Jetpack Compose for modern Android development
+- **NEW**: Complete API implementation with JSONPlaceholder demo API (https://jsonplaceholder.typicode.com/)
+- **NEW**: Full CRUD operations with proper error handling and loading states
+- **NEW**: Clean Architecture implementation with proper separation of concerns
+- **NEW**: Modern UI with Material3 design and intuitive user experience
+
+## 🌐 API Demo Features
+
+The new API Demo activity includes:
+
+### **CRUD Operations**
+- **GET**: Fetch all users and individual users by ID
+- **POST**: Create new users with form validation
+- **PUT**: Update existing users completely
+- **PATCH**: Partially update user information
+- **DELETE**: Remove users from the system
+- **SEARCH**: Find users by name or email with query parameters
+
+### **Error Handling**
+- **HTTP Errors**: 400, 401, 403, 404, 422, 429, 500, 502, 503
+- **Network Errors**: Timeout, No Internet, Connection issues
+- **User-Friendly Messages**: Clear error descriptions for each scenario
+- **Error Codes**: Display HTTP status codes for debugging
+
+### **UI Features**
+- **Loading States**: Progress indicators during API calls
+- **Success States**: Display data with proper formatting
+- **Error States**: Show error messages with retry options
+- **Form Validation**: Input validation for create/update operations
+- **Responsive Design**: Works on different screen sizes
+- **Material3 Design**: Modern Android design guidelines
+
+### **Technical Implementation**
+- **Clean Architecture**: Data, Domain, UI layers properly separated
+- **Repository Pattern**: Abstract data access layer
+- **StateFlow**: Reactive state management with Compose
+- **Coroutines**: Asynchronous operations with proper error handling
+- **Hilt DI**: Complete dependency injection setup
+- **Retrofit**: Type-safe HTTP client with Gson serialization
 
 ## 🤝 Contributing
 

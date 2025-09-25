@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" >
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application
         android:name=".AppApplication"
         android:allowBackup="true"
@@ -23,6 +26,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <activity
+            android:name=".api.ui.activity.ApiDemoActivity"
+            android:exported="true"
+            android:label="API Demo"
+            android:theme="@style/Theme.HiltExmaple" />
     </application>
 
 </manifest>

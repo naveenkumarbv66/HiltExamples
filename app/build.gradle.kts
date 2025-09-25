@@ -68,4 +68,15 @@ dependencies {
 
     // Lifecycle ViewModel Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose.v294)
+
+    // Retrofit and Networking
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
+    implementation(libs.gson)
+
+    // Coroutines
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
 }
