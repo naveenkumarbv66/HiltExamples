@@ -88,6 +88,17 @@ class MainActivity : ComponentActivity() {
                         ) {
                             Text("Open API Demo")
                         }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Button(
+                            onClick = {
+                                val intent = Intent(this@MainActivity, com.naveen.hiltexmaple.api.ui.activity.UseCaseDemoActivity::class.java)
+                                startActivity(intent)
+                            }
+                        ) {
+                            Text("Open Use Case Demo")
+                        }
                     }
                 }
             }

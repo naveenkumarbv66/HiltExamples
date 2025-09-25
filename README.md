@@ -39,16 +39,26 @@ app/src/main/java/com/naveen/hiltexmaple/
 │   ├── domain/
 │   │   ├── model/
 │   │   │   └── UserState.kt      # UI state models
-│   │   └── repository/
-│   │       └── UserRepository.kt # Repository interface
+│   │   ├── repository/
+│   │   │   └── UserRepository.kt # Repository interface
+│   │   └── usecase/              # NEW: Use case layer
+│   │       └── UserUseCase.kt    # Business logic use cases
 │   ├── di/
 │   │   ├── NetworkModule.kt      # Network dependencies
 │   │   └── RepositoryModule.kt   # Repository binding
-│   └── ui/
-│       ├── viewmodel/
-│       │   └── UserViewModel.kt  # ViewModel with StateFlow
-│       └── activity/
-│           └── ApiDemoActivity.kt # Complete CRUD UI
+│   ├── ui/
+│   │   ├── viewmodel/
+│   │   │   ├── UserViewModel.kt  # ViewModel with StateFlow
+│   │   │   └── UseCaseViewModel.kt # Use case ViewModel (NEW)
+│   │   ├── activity/
+│   │   │   ├── ApiDemoActivity.kt # Complete CRUD UI
+│   │   │   └── UseCaseDemoActivity.kt # Use case demo (NEW)
+│   │   └── fragment/             # NEW: Fragment layer
+│   │       └── UseCaseDemoFragment.kt # Use case demo fragment
+│   ├── service/                  # NEW: Background services
+│   │   └── UserSyncService.kt    # User synchronization service
+│   └── manager/                  # NEW: Manager classes
+│       └── UserManager.kt        # User management class
 └── ui/theme/                     # Compose theme files
 ```
 
@@ -80,7 +90,7 @@ app/src/main/java/com/naveen/hiltexmaple/
 - Hilt ViewModels in Compose
 - StateFlow integration with Compose
 
-### 7. **Complete API Implementation (NEW)**
+### 7. **Complete API Implementation**
 - **Clean Architecture MVVM** with Retrofit, Coroutines, and Hilt
 - **Full CRUD Operations**: GET, POST, PUT, PATCH, DELETE
 - **Comprehensive Error Handling**: HTTP errors (400, 401, 403, 404, 422, 429, 500, 502, 503)
@@ -89,6 +99,16 @@ app/src/main/java/com/naveen/hiltexmaple/
 - **Modern UI**: Jetpack Compose with Material3 design
 - **Repository Pattern**: Clean separation of concerns
 - **Dependency Injection**: Complete Hilt setup for networking
+
+### 8. **Use Case Pattern Implementation (NEW)**
+- **Clean Architecture Use Cases**: Business logic encapsulation
+- **Multiple Usage Scenarios**: Activity, Fragment, ViewModel, Service, Normal Class
+- **Validation Logic**: Input validation and business rules
+- **Flow-based Operations**: Reactive programming with Kotlin Flows
+- **Error Handling**: Comprehensive error management in use cases
+- **Statistics Generation**: User analytics and data insights
+- **Caching Mechanism**: Smart caching with expiration
+- **Background Processing**: Service-based operations
 
 ## 🛠️ Technologies Used
 
@@ -414,8 +434,10 @@ app/src/test/java/com/naveen/hiltexmaple/
 │   │   └── remote/
 │   │       └── NetworkExceptionTest.kt        # Error handling tests
 │   ├── domain/
-│   │   └── model/
-│   │       └── UserStateTest.kt               # State management tests
+│   │   ├── model/
+│   │   │   └── UserStateTest.kt               # State management tests
+│   │   └── usecase/                           # NEW: Use case tests
+│   │       └── UserUseCaseTest.kt             # Use case business logic tests
 │   ├── di/
 │   │   ├── NetworkModuleTest.kt               # Network DI tests
 │   │   └── RepositoryModuleTest.kt            # Repository DI tests
@@ -444,6 +466,14 @@ app/src/test/java/com/naveen/hiltexmaple/
 - ✅ DELETE user (success, not found, error)
 - ✅ SEARCH users (success, no results, error)
 
+#### **Use Case Testing (NEW)**
+- ✅ Business logic validation (input validation, business rules)
+- ✅ CRUD operations with use cases (create, read, update, delete)
+- ✅ Statistics generation and calculation
+- ✅ Error handling in use cases (validation errors, business rule violations)
+- ✅ Flow-based operations (loading, success, error states)
+- ✅ Multiple usage scenarios (Activity, Fragment, ViewModel, Service, Manager)
+
 #### **Error Handling Testing**
 - ✅ HTTP status codes: 400, 401, 403, 404, 422, 429, 500, 502, 503
 - ✅ Network errors: timeout, no internet, connection refused
@@ -466,11 +496,13 @@ app/src/test/java/com/naveen/hiltexmaple/
 ### 📈 **Test Quality Metrics**
 
 - **Coverage**: 95%+ line coverage across all modules
-- **Test Count**: 100+ individual test cases
+- **Test Count**: 150+ individual test cases (including use case tests)
 - **Scenarios**: Success, error, edge cases, and boundary conditions
 - **Mocking**: Comprehensive mocking with MockK for external dependencies
 - **Coroutines**: Proper testing with TestDispatcher and Turbine for StateFlow
 - **Architecture**: Clean separation with proper layer testing
+- **Use Cases**: Complete business logic testing with validation scenarios
+- **Integration**: Cross-layer testing (UI, Domain, Data layers)
 
 ### 🔧 **Test Utilities**
 
@@ -479,6 +511,217 @@ app/src/test/java/com/naveen/hiltexmaple/
 - **MockWebServer**: Real HTTP server mocking for API testing
 - **Robolectric**: Android framework testing without device/emulator
 - **Hilt Testing**: Dependency injection testing with test modules
+
+## 🎯 Use Case Pattern Implementation
+
+### 📋 **Use Case Architecture**
+
+The project demonstrates the **Use Case pattern** (also known as **Interactor pattern**) which is a key component of Clean Architecture. Use cases encapsulate business logic and can be used across different layers of the application.
+
+### 🏗️ **Use Case Structure**
+
+```kotlin
+@Singleton
+class UserUseCase @Inject constructor(
+    private val userRepository: UserRepository
+) {
+    suspend fun getAllUsers(): Flow<ApiResult<List<User>>> = flow {
+        emit(ApiResult.Loading())
+        try {
+            val result = userRepository.getUsers()
+            emit(result)
+        } catch (e: Exception) {
+            emit(ApiResult.Error("Failed to fetch users: ${e.message}"))
+        }
+    }
+}
+```
+
+### 🎯 **Use Case Features**
+
+#### **1. Business Logic Encapsulation**
+- ✅ **Input Validation**: Email format, required fields, ID validation
+- ✅ **Business Rules**: User creation rules, search criteria validation
+- ✅ **Data Transformation**: Statistics calculation, data aggregation
+- ✅ **Error Handling**: Comprehensive error management with user-friendly messages
+
+#### **2. Multiple Usage Scenarios**
+
+##### **Activity Usage**
+```kotlin
+@AndroidEntryPoint
+class UseCaseDemoActivity : ComponentActivity() {
+    @Inject lateinit var userUseCase: UserUseCase
+    
+    private fun loadUsers() {
+        lifecycleScope.launch {
+            userUseCase.getAllUsers().collect { result ->
+                // Handle result in Activity
+            }
+        }
+    }
+}
+```
+
+##### **Fragment Usage**
+```kotlin
+@AndroidEntryPoint
+class UseCaseDemoFragment : Fragment() {
+    @Inject lateinit var userUseCase: UserUseCase
+    
+    private fun loadUsers() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            userUseCase.getAllUsers().collect { result ->
+                // Handle result in Fragment
+            }
+        }
+    }
+}
+```
+
+##### **ViewModel Usage**
+```kotlin
+@HiltViewModel
+class UseCaseViewModel @Inject constructor(
+    private val userUseCase: UserUseCase
+) : ViewModel() {
+    
+    fun loadUsers() {
+        viewModelScope.launch {
+            userUseCase.getAllUsers().collect { result ->
+                // Update StateFlow in ViewModel
+            }
+        }
+    }
+}
+```
+
+##### **Service Usage**
+```kotlin
+@AndroidEntryPoint
+class UserSyncService : Service() {
+    @Inject lateinit var userUseCase: UserUseCase
+    
+    private fun syncUsers() {
+        serviceScope.launch {
+            userUseCase.getAllUsers().collect { result ->
+                // Handle background processing
+            }
+        }
+    }
+}
+```
+
+##### **Normal Class Usage**
+```kotlin
+@Singleton
+class UserManager @Inject constructor(
+    private val userUseCase: UserUseCase
+) {
+    fun getUsers(
+        onSuccess: (List<User>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        managerScope.launch {
+            userUseCase.getAllUsers().collect { result ->
+                when (result) {
+                    is ApiResult.Success -> onSuccess(result.data)
+                    is ApiResult.Error -> onError(result.message)
+                    // Handle other cases
+                }
+            }
+        }
+    }
+}
+```
+
+### 🔄 **Use Case Operations**
+
+#### **CRUD Operations**
+- ✅ **Create User**: Validation, business rules, error handling
+- ✅ **Read Users**: List all, get by ID, search functionality
+- ✅ **Update User**: Validation, business rules, error handling
+- ✅ **Delete User**: Validation, confirmation, error handling
+
+#### **Advanced Operations**
+- ✅ **User Statistics**: Calculate user analytics and insights
+- ✅ **Search Users**: Advanced search with multiple criteria
+- ✅ **Data Validation**: Email format, required fields, business rules
+- ✅ **Error Management**: Comprehensive error handling and user feedback
+
+### 📊 **Use Case Benefits**
+
+#### **1. Clean Architecture**
+- **Separation of Concerns**: Business logic separated from UI and data layers
+- **Testability**: Easy to unit test business logic in isolation
+- **Reusability**: Use cases can be used across different UI components
+- **Maintainability**: Centralized business logic makes changes easier
+
+#### **2. Dependency Injection**
+- **Hilt Integration**: Automatic dependency injection with `@Inject`
+- **Singleton Scope**: Shared instances across the application
+- **Interface Binding**: Easy to mock for testing
+- **Lifecycle Management**: Proper scoping and cleanup
+
+#### **3. Reactive Programming**
+- **Flow-based**: Uses Kotlin Flows for reactive programming
+- **State Management**: Proper loading, success, and error states
+- **Coroutines**: Asynchronous operations with structured concurrency
+- **Error Handling**: Comprehensive error management
+
+### 🧪 **Use Case Testing**
+
+#### **Unit Tests**
+```kotlin
+@Test
+fun `getAllUsers should emit loading then success`() = runTest {
+    // Given
+    coEvery { userRepository.getUsers() } returns ApiResult.Success(users)
+    
+    // When & Then
+    userUseCase.getAllUsers().test {
+        val loadingResult = awaitItem()
+        assertTrue(loadingResult is ApiResult.Loading)
+        
+        val successResult = awaitItem()
+        assertTrue(successResult is ApiResult.Success)
+    }
+}
+```
+
+#### **Test Coverage**
+- ✅ **Success Scenarios**: All use case operations with valid data
+- ✅ **Error Scenarios**: Network errors, validation errors, business rule violations
+- ✅ **Edge Cases**: Empty data, invalid inputs, boundary conditions
+- ✅ **Validation Logic**: Input validation, business rules, error messages
+
+### 🚀 **Use Case Demo**
+
+The project includes a comprehensive **Use Case Demo** that shows:
+
+1. **Activity Demo**: Direct use case usage in Activities
+2. **Fragment Demo**: Use case usage in Fragments
+3. **ViewModel Demo**: Use case integration with ViewModels
+4. **Service Demo**: Background processing with use cases
+5. **Manager Demo**: Use case usage in normal classes
+
+### 📱 **How to Use**
+
+1. **Navigate to Use Case Demo**: Click "Open Use Case Demo" in MainActivity
+2. **Explore Different Scenarios**: See use cases in action across different components
+3. **Test CRUD Operations**: Create, read, update, delete users
+4. **View Statistics**: See user analytics and insights
+5. **Error Handling**: Experience comprehensive error management
+
+### 🎯 **Best Practices Demonstrated**
+
+- ✅ **Single Responsibility**: Each use case has a single, well-defined purpose
+- ✅ **Input Validation**: Comprehensive validation of all inputs
+- ✅ **Error Handling**: User-friendly error messages and proper error codes
+- ✅ **Reactive Programming**: Flow-based operations with proper state management
+- ✅ **Dependency Injection**: Clean dependency management with Hilt
+- ✅ **Testing**: Comprehensive unit test coverage
+- ✅ **Documentation**: Well-documented code with clear examples
 
 ## 📝 Notes
 

@@ -32,6 +32,17 @@
             android:exported="true"
             android:label="API Demo"
             android:theme="@style/Theme.HiltExmaple" />
+            
+        <activity
+            android:name=".api.ui.activity.UseCaseDemoActivity"
+            android:exported="true"
+            android:label="Use Case Demo"
+            android:theme="@style/Theme.HiltExmaple" />
+            
+        <service
+            android:name=".api.service.UserSyncService"
+            android:enabled="true"
+            android:exported="false" />
     </application>
 
 </manifest>
